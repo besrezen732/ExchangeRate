@@ -19,33 +19,42 @@ namespace ExchangeRate
         public string Course { get; set; }
     }
 
-    class WriteEсxelClass
+    class WriteExcelClass
     {
         public List<ExcelColumnList> ExcelColumnsWrite(string html, string dateString)
         {
-            var htmlList = html.Replace("<tr>","").Trim().Split("</tr>").ToList();
+            var htmlList = html.Replace("<tr>", "").Trim().Split("</tr>").ToList();
             List<ExcelColumnList> excelColumnList = new List<ExcelColumnList>();
 
+            int i = 0;
             foreach (string hl in htmlList)
             {
-                string[] separatingStrings = { "</th>", "</td>" };
-
-                var hlMass= hl.Replace("<th>", "").Replace("<td>", "").Trim().Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
-                excelColumnList.Add(new ExcelColumnList()
+                if (hl != string.Empty)
                 {
-                    Date = dateString,
-                    NumCode = hlMass[0],
-                    StrCode = hlMass[1],
-                    Count = hlMass[2],
-                    Name = hlMass[3],
-                    Course = hlMass[4]
-                });
+                    string[] separatingStrings = {"</th>", "</td>"};
+                    var hlMass = hl.Replace("<th>", String.Empty)
+                        .Replace("<td>", String.Empty)
+                        .Replace("\r\n", "").Trim()
+                        .Split(separatingStrings, System.StringSplitOptions.RemoveEmptyEntries);
+
+                    if (hlMass.Length == 5)
+                    {
+                        excelColumnList.Add(new ExcelColumnList()
+                        {
+                            Date = dateString,
+                            NumCode = hlMass[0],
+                            StrCode = hlMass[1],
+                            Count = hlMass[2],
+                            Name = hlMass[3],
+                            Course = hlMass[4]
+                        });
+                    }
+                }
             }
-           
             return excelColumnList;
         }
 
-        public void ExportToExcel()
+        public void ExportToExcel(List<List<ExcelColumnList>> excelColumnList)
         {
             string fileName = string.Format(@"{0}\LogFile\ExchangeRate.xlsx", Environment.CurrentDirectory);
             //Объявляем приложение
@@ -56,15 +65,22 @@ namespace ExchangeRate
             //Получаем первый лист документа (счет начинается с 1)
             Excel.Worksheet workSheet = (Excel.Worksheet) excelApp.Worksheets.get_Item(1);
 
-
-            // Установить заголовки столбцов в ячейках
-            workSheet.Cells[1, "A"] = "Date";
-            workSheet.Cells[1, "B"] = "NumCode";
-            workSheet.Cells[1, "C"] = "StrCode";
-            workSheet.Cells[1, "D"] = "Count";
-            workSheet.Cells[1, "E"] = "Name";
-            workSheet.Cells[1, "F"] = "Course";
-
+            int i = 1;
+            foreach (var columnExcelDate in excelColumnList)
+            {
+                foreach (var column in columnExcelDate)
+                {
+                    // Установить заголовки столбцов в ячейках
+                    workSheet.Cells[i, "A"] = column.Date;
+                    workSheet.Cells[i, "B"] = column.NumCode;
+                    workSheet.Cells[i, "C"] = column.StrCode;
+                    workSheet.Cells[1, "D"] = column.Count;
+                    workSheet.Cells[i, "E"] = column.Name;
+                    workSheet.Cells[i, "F"] = column.Course;
+                    i++;
+                }
+               
+            }
 
             if (System.IO.File.Exists(fileName)) System.IO.File.Delete(fileName);
             xlWB.SaveAs(fileName, Excel.XlFileFormat.xlWorkbookDefault); //формат Excel 2007
